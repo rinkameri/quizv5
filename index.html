@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мемный квиз-провокатор</title>
+    <style>
+        :root {
+            --dark-bg: #1a1a1a;
+            --accent: #ff66b3;
+            --text: #e0e0e0;
+        }
+
+        body {
+            margin: 0;
+            background: var(--dark-bg);
+            font-family: 'Comic Sans MS', cursive;
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        .pasta {
+            position: fixed;
+            opacity: 0.3;
+            animation: float 15s infinite linear;
+            z-index: -1;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); }
+            100% { transform: translateY(-100vh) rotate(360deg); }
+        }
+
+        .quiz-container {
+            background: #333;
+            padding: 1rem;
+            margin: 1rem;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: relative;
+            min-height: 60vh;
+        }
+
+        .question {
+            font-size: 1.3rem;
+            text-align: center;
+            margin: 1rem 0;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .options {
+            display: grid;
+            gap: 0.8rem;
+        }
+
+        .option {
+            padding: 1rem;
+            background: #404040;
+            border: 2px solid var(--accent);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .option:hover {
+            background: #4d4d4d;
+            transform: scale(1.02);
+        }
+
+        .final-message {
+            animation: glitch 1s infinite;
+            text-align: center;
+            font-size: 2rem;
+            padding: 2rem;
+        }
+
+        @keyframes glitch {
+            0% { text-shadow: 2px 2px 0 cyan; }
+            50% { text-shadow: -2px -2px 0 magenta; }
+            100% { text-shadow: 2px -2px 0 yellow; }
+        }
+
+        .falling-letter {
+            position: fixed;
+            font-size: 2rem;
+            animation: fall 3s linear forwards;
+            pointer-events: none;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(-100vh) rotate(0deg); }
+            100% { transform: translateY(100vh) rotate(720deg); }
+        }
+
+        .meme-img {
+            width: 100%;
+            max-width: 300px;
+            margin: 1rem auto;
+            border-radius: 10px;
+            border: 3px solid var(--accent);
+        }
+
+        @media (max-width: 480px) {
+            .question { font-size: 1.1rem; }
+            .option { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="questions"></div>
+        <div class="options"></div>
+    </div>
+
+    <audio id="sound" src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"></audio>
+
+    <script>
+        // Генератор летающих макарон
+        function createPasta() {
+            const types = ['🍝', '🍜', '🍛'];
+            const pasta = document.createElement('div');
+            pasta.className = 'pasta';
+            pasta.textContent = types[Math.floor(Math.random() * types.length)];
+            pasta.style.left = Math.random() * 100 + 'vw';
+            pasta.style.animationDuration = Math.random() * 10 + 5 + 's';
+            document.body.appendChild(pasta);
+            setTimeout(() => pasta.remove(), 15000);
+        }
+
+        // Генератор падающих букв
+        function createFallingLetters(text) {
+            text.split('').forEach((char, i) => {
+                const letter = document.createElement('div');
+                letter.className = 'falling-letter';
+                letter.textContent = char;
+                letter.style.left = Math.random() * 90 + 'vw';
+                letter.style.animationDelay = i * 0.1 + 's';
+                document.body.appendChild(letter);
+            });
+        }
+
+        // Мемные картинки
+        const memes = [
+            'https://i.imgflip.com/8bn0th.jpg',
+            'https://i.imgflip.com/8wz4o.jpg',
+            'https://i.imgflip.com/8bn0th.jpg'
+        ];
+
+        const questions = [
+            {
+                question: "Если 🐷 летит на 🚁 с 🍝 что делать?",
+                options: ["💩 в 💼", "🤸♂️ с 🌈", "📞 👽"]
+            },
+            {
+                question: "Сколько 🦄 нужно для 😱?",
+                options: ["½ 🥑", "🕒 🕒 🕒", "🚫🧠"]
+            },
+            {
+                question: "Как 🥔 связан с 🛸?",
+                options: ["🤫", "👽=🥔", "💥🔥"]
+            }
+        ];
+
+        let currentQuestion = 0;
+        const container = document.querySelector('.quiz-container');
+        const playSound = () => document.getElementById('sound').play();
+
+        // Инициализация
+        setInterval(createPasta, 3000);
+        
+        function renderQuestion() {
+            container.innerHTML = `
+                <div class="question">${questions[currentQuestion].question}</div>
+                <div class="options">
+                    ${questions[currentQuestion].options.map(opt => `
+                        <button class="option" onclick="nextQuestion()">${opt}</button>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function nextQuestion() {
+            playSound();
+            currentQuestion++;
+            if(currentQuestion < questions.length) {
+                renderQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            createFallingLetters('ВЫ ФАШИСТ!');
+            container.innerHTML = `
+                <div class="final-message">
+                    🚨🚓🚔 ВЫ ФАШИСТ! 🚨<br>
+                    Депортация через: 3... 2... 1... 💥<br>
+                    <img class="meme-img" src="${memes[Math.floor(Math.random() * memes.length)]}">
+                </div>
+            `;
+        }
+
+        // Начало квиза
+        renderQuestion();
+    </script>
+</body>
+</html>
